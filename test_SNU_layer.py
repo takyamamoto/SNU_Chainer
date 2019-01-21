@@ -52,6 +52,7 @@ plt.ylabel('Membrane\n Potential')
 plt.subplot(3,1,3)
 plt.plot(y_arr)
 plt.ylabel("Output")
+plt.xlabel("Time (ms)")
 
 plt.tight_layout()
 plt.savefig("SNU_result.png")
