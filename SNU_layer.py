@@ -10,6 +10,7 @@ import numpy as xp
 #xp = cuda.cupy
 
 from chainer import Variable
+from step_func import step
 
 # Building Spiking Neural Unit
 class SNU(chainer.Chain):
@@ -58,7 +59,8 @@ class SNU(chainer.Chain):
         if self.soft:            
             y = F.sigmoid(F.bias(s, self.b_th.b))
         else:            
-            y = F.relu(F.sign(F.bias(s, self.b_th.b)))
+            y = step(F.bias(s, self.b_th.b))
+            #y = F.relu(F.sign(F.bias(s, self.b_th.b)))
             
         self.s = s
         self.y = y

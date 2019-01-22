@@ -18,7 +18,7 @@ snu_l.Wx.W = Variable(np.array([[1.0]], dtype=np.float32))
 
 
 """ Generate Poisson Spike Trains """
-frequency = 10
+frequency = 8
 num_spikes_per_cell = 20
 x = np.zeros(num_time) # input spike array
 isi = np.random.poisson(frequency, num_spikes_per_cell)
