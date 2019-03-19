@@ -47,7 +47,7 @@ class PseudoStepGrad(function_node.FunctionNode):
 
     def forward_cpu(self, inputs):
         gy, = inputs
-        gx = ((-1 < self.x) & (self.x < 1)) * gy * 1
+        gx = ((-0.5 < self.x) & (self.x < 0.5)) * gy * 1
         return utils.force_array(gx, self.x.dtype),
 
     def forward_gpu(self, inputs):
@@ -57,16 +57,6 @@ class PseudoStepGrad(function_node.FunctionNode):
             'gx = fabs(x) < 0.5 ? 1 * g : 0',
             'step_pseudo_bwd'
         )(self.x, gy),
-
-    """
-    def forward_gpu(self, inputs):
-        gy, = inputs
-        return cuda.elementwise(
-            'T x, T g', 'T gx',
-            'gx = fabs(x) < 0.5 ? 1 * g : 0',
-            'step_pseudo_bwd'
-        )(self.x, gy),
-    """
 
     def backward(self, indexes, grad_outputs):
         return PseudoStepGrad(self.x).apply(grad_outputs)

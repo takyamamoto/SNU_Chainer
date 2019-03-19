@@ -10,7 +10,7 @@ from chainer import cuda
 #import chainer.functions as F
 xp = cuda.cupy
 
-import network
+from model import network
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -29,22 +29,17 @@ def load_data(N=1, dt=5e-3, num_time=20, max_fr=60):
     return x.astype(np.float32), y.astype(np.int8)
 
 def plot_activation(model, N, dt, num_time, n_mid,
-                    n_out, max_fr, gpu):
+                    n_out, max_fr, gpu, savefigname):
     x, y = load_data(N=N, dt=dt, num_time=num_time, max_fr=max_fr)
     
     idx = 0
     check_x = np.sum(x[idx], axis=1)
     
-    plt.figure(figsize=(3,3))
-    plt.imshow(np.reshape(check_x, (28, 28)))
-    plt.savefig("input_all_sum.png")
-    #plt.show()
-    
-    plt.figure(figsize=(3,3))
-    plt.imshow(np.reshape(x[idx, :, 1], (28, 28)))
-    plt.savefig("input_frame.png")
-    #plt.show()
-    
+    fig = plt.figure(figsize=(6, 4))
+    ax1 = fig.add_subplot(1, 2, 1)
+    ax1.set_title("Sum of all input spikes\n label : "+str(y[idx]))
+    ax1.imshow(np.reshape(check_x, (28, 28)))
+        
     if gpu >= 0:
         cuda.get_device_from_id(0).use()
         model.to_gpu()
@@ -62,8 +57,9 @@ def plot_activation(model, N, dt, num_time, n_mid,
         h2_all[i] = cuda.to_cpu(h2_list[i].data)
         out_all[i] = cuda.to_cpu(out_list[i].data)
     
-    t = np.arange(0, num_time)*dt*1000
+    t = np.arange(1, num_time+1)*dt*1000
     
+    """
     plt.figure(figsize=(4,4))
     plt.ylim(-0.5, n_mid-0.5)
     plt.ylabel("# Unit")
@@ -83,23 +79,24 @@ def plot_activation(model, N, dt, num_time, n_mid,
         spk = np.where(h2_all[:, idx, i]==1, i, -1)
         plt.scatter(t, spk, color="r",
                     s=0.1)
-    
     plt.savefig("h2.png")
+    """
     
-    
-    plt.figure(figsize=(4,4))
-    plt.ylim(-0.5, n_out-0.5)
-    plt.ylabel("# Unit")
-    plt.xlabel("Simulation Time(ms)")
-    plt.yticks(np.arange(0, n_out).tolist())
+    ax2 = fig.add_subplot(1, 2, 2)
+
+    ax2.set_title("Spikes of the output units")
+    ax2.set_ylabel("Output unit #")
+    ax2.set_xlabel("Simulation Time(ms)")
+    ax2.set_ylim(-0.5, n_out-0.5)
+    ax2.set_xlim(0, num_time+1)
+    ax2.set_yticks(np.arange(0, n_out).tolist())
     for i in range(n_out):
         spk = np.where(out_all[:, idx, i]==1, i, -1)
-        plt.scatter(t, spk, color="r", marker="|")
+        ax2.scatter(t, spk, color="r", marker="|")
+    plt.tight_layout()
+    plt.savefig(savefigname)
     
-    plt.savefig("result.png")
-    
-    #plt.show()
-        
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', '-g', type=int, default=-1,
@@ -116,7 +113,7 @@ def main():
                         help='The number of analysis trials.')
     parser.add_argument('--freq', '-f', type=float, default=100,
                         help='Input signal maximum frequency (Hz).')
-    parser.add_argument('--time', '-t', type=int, default=5,
+    parser.add_argument('--time', '-t', type=int, default=20,
                         help='Total simulation time steps.')
     args = parser.parse_args()
     
@@ -148,7 +145,8 @@ def main():
     plot_activation(model=model, N=args.ndata, dt=args.dt,
                     num_time=args.time, n_mid=n_mid,
                     n_out=n_out, 
-                    max_fr=args.freq, gpu=args.gpu)
+                    max_fr=args.freq, gpu=args.gpu,
+                    savefigname=img_save_dir+"results.png")
     
             
 if __name__ == '__main__':

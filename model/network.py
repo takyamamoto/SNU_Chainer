@@ -2,7 +2,7 @@
 
 import chainer
 import chainer.functions as F
-import chainer.links as L
+#import chainer.links as L
 from chainer import reporter
 from . import snu_layer
 
