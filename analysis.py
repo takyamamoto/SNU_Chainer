@@ -47,7 +47,7 @@ def plot_activation(model, N, dt, num_time, n_mid,
         y = cuda.cupy.array(y)
        
     with chainer.using_config('train', False):
-        loss, accuracy, h1_list, h2_list, out_list = model(x, y)
+        loss, accuracy, h1_list, h2_list, h3_list, out_list = model(x, y)
     
     h1_all = np.zeros((num_time, N, n_mid))
     h2_all = np.zeros((num_time, N, n_mid))
@@ -113,7 +113,7 @@ def main():
                         help='The number of analysis trials.')
     parser.add_argument('--freq', '-f', type=float, default=100,
                         help='Input signal maximum frequency (Hz).')
-    parser.add_argument('--time', '-t', type=int, default=20,
+    parser.add_argument('--time', '-t', type=int, default=100,
                         help='Total simulation time steps.')
     args = parser.parse_args()
     

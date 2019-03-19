@@ -20,16 +20,19 @@ class SNU_Network(chainer.Chain):
         with self.init_scope():
             self.l1 = snu_layer.SNU(n_in, n_mid, l_tau=l_tau, soft=soft, gpu=gpu)
             self.l2 = snu_layer.SNU(n_mid, n_mid, l_tau=l_tau, soft=soft, gpu=gpu)
-            self.l3 = snu_layer.SNU(n_mid, n_out, l_tau=l_tau, soft=soft, gpu=gpu)
+            self.l3 = snu_layer.SNU(n_mid, n_mid, l_tau=l_tau, soft=soft, gpu=gpu)
+            self.l4 = snu_layer.SNU(n_mid, n_out, l_tau=l_tau, soft=soft, gpu=gpu)
             
             self.n_out = n_out
             self.num_time = num_time
+            self.gamma = (1/(num_time*n_out))*1e-2
             self.test_mode = test_mode
     
     def _reset_state(self):
         self.l1.reset_state()
         self.l2.reset_state()
         self.l3.reset_state()
+        self.l4.reset_state()
         
     def forward(self, x, y):
         loss = None
@@ -41,28 +44,33 @@ class SNU_Network(chainer.Chain):
         if self.test_mode == True:
             h1_list = []
             h2_list = []
+            h3_list = []
             out_list = []
         
         for t in range(self.num_time):
             x_t = x[:, :, t]
             h1 = self.l1(x_t)
             h2 = self.l2(h1)
-            out = self.l3(h2)
+            h3 = self.l3(h2)
+            out = self.l4(h3)
             
             if self.test_mode == True:
                 h1_list.append(h1)
                 h2_list.append(h2)
+                h3_list.append(h3)
                 out_list.append(out)
             
             sum_out = out if sum_out is None else sum_out + out
         
         loss = F.softmax_cross_entropy(sum_out, y)
+        loss += self.gamma*F.sum(sum_out**2)
+        
         accuracy = F.accuracy(sum_out, y)
 
         reporter.report({'loss': loss}, self)
         reporter.report({'accuracy': accuracy}, self)
         
         if self.test_mode == True:
-            return loss, accuracy, h1_list, h2_list, out_list
+            return loss, accuracy, h1_list, h2_list, h3_list, out_list
         else:
             return loss

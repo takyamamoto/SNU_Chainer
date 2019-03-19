@@ -45,11 +45,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', '-g', type=int, default=-1)
     parser.add_argument('--model', '-m', type=str, default=None)
-    parser.add_argument('--batch', '-b', type=int, default=64)
-    parser.add_argument('--epoch', '-e', type=int, default=40)
+    parser.add_argument('--batch', '-b', type=int, default=128)
+    parser.add_argument('--epoch', '-e', type=int, default=100)
     parser.add_argument('--ndata', '-nd', type=int, default=60000,
                         help='The number of analysis trials (<=60000).')
-    parser.add_argument('--time', '-t', type=int, default=20,
+    parser.add_argument('--time', '-t', type=int, default=10,
                         help='Total simulation time steps.')
     parser.add_argument('--dt', '-dt', type=float, default=1e-3,
                         help='Simulation time step size (sec).')
@@ -95,7 +95,7 @@ def main():
     #optimizer = optimizers.SGD(lr=args.lr)
     #optimizer = optimizers.RMSprop(lr=args.lr, alpha=0.9)
     optimizer.setup(model)
-    optimizer.add_hook(chainer.optimizer_hooks.WeightDecay(1e-5))
+    optimizer.add_hook(chainer.optimizer_hooks.WeightDecay(1e-4))
     
     if args.model != None:
         print( "loading model from " + args.model)
