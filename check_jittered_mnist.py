@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 
+import os
 import chainer
 import numpy as np
 import matplotlib.pyplot as plt
+
+img_save_dir = "./imgs/"
+os.makedirs(img_save_dir, exist_ok=True)
 
 # Load the MNIST dataset
 train, _ = chainer.datasets.get_mnist()
@@ -34,4 +38,4 @@ ax3 = fig.add_subplot(1, 3, 3)
 ax3.set_title("Jittered\n (sum all time step)")
 ax3.imshow(np.reshape(sum_x, (28, 28)))
 #plt.show()
-plt.savefig("JitteredMNIST")
+plt.savefig(img_save_dir+"JitteredMNIST")

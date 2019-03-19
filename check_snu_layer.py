@@ -10,7 +10,6 @@ from chainer import Variable
 img_save_dir = "./imgs/"
 os.makedirs(img_save_dir, exist_ok=True)
     
-
 """ Build Spiking Neural Unit """
 num_time = 100 # simulation time step
 V_th = 2.5
