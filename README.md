@@ -9,11 +9,11 @@ See: https://arxiv.org/abs/1812.07040
 
 ## Usage
 ### Train the network
-Run, `python train.py -g 0`
+Run, `python train.py -g 0`  
 <img src="https://github.com/takyamamoto/SNU_Chainer/blob/master/imgs/loss_acc.png" width=60%>
 
 ### Test output activity
-Run, `python analysis.py -g 0`
+Run, `python analysis.py -g 0`  
 <img src="https://github.com/takyamamoto/SNU_Chainer/blob/master/imgs/results.png" width=60%>
 
 ### Check SNU layer
