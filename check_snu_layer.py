@@ -1,31 +1,31 @@
 # -*- coding: utf-8 -*-
 
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-from SNU_layer import SNU
+from model import snu_layer
 from chainer import Variable
+
+img_save_dir = "./imgs/"
+os.makedirs(img_save_dir, exist_ok=True)
+    
 
 """ Build Spiking Neural Unit """
 num_time = 100 # simulation time step
 V_th = 2.5
-tau = 25
-dt = 1
+tau = 25e-3 # sec
+dt = 1e-3 # sec
 
-snu_l = SNU(n_in=1, n_out=1, l_tau=(1-dt/tau), soft=False)
-snu_l.b_th.b = Variable(np.array([-V_th], dtype=np.float32))
+snu_l = snu_layer.SNU(n_in=1, n_out=1, l_tau=(1-dt/tau),
+                      soft=False, initial_bias=-V_th)
 snu_l.Wx.W = Variable(np.array([[1.0]], dtype=np.float32))
 
 
 """ Generate Poisson Spike Trains """
-frequency = 8
-num_spikes_per_cell = 20
-x = np.zeros(num_time) # input spike array
-isi = np.random.poisson(frequency, num_spikes_per_cell)
-idx = np.cumsum(isi)
-idx = idx[idx<num_time]
-x[idx] = 1
-x = np.array([[x]]).astype(np.float32)
+fr = 100 # Hz
+x = np.where(np.random.rand(1, num_time) < fr*dt, 1, 0)
+x = np.expand_dims(x, 0).astype(np.float32)
 
 """ Simulation """
 s_arr = np.zeros(num_time) # array to save membrane potential
@@ -55,4 +55,4 @@ plt.ylabel("Output")
 plt.xlabel("Time (ms)")
 
 plt.tight_layout()
-plt.savefig("SNU_result.png")
+plt.savefig(img_save_dir+"Check_SNU_result.png")

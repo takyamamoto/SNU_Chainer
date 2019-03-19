@@ -15,19 +15,19 @@ from chainer import cuda
 xp = cuda.cupy
 
 
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
-import network
+from model import network
 
-np.random.seed(seed=2019)
+np.random.seed(seed=0)
 
 class LoadDataset(dataset.DatasetMixin):
-    def __init__(self, N=60000, dt=1e-3, num_time=100, max_fr=32):
+    def __init__(self, N=60000, dt=1e-3, num_time=100, max_fr=60):
         train, _ = chainer.datasets.get_mnist()
         x = np.zeros((N, 784, num_time)) # 784=28x28
         y = np.zeros(N)
         for i in tqdm(range(N)):    
-            fr = max_fr * np.repeat(np.expand_dims(train[i][0], 1), num_time, axis=1)
+            fr = max_fr * np.repeat(np.expand_dims(np.heaviside(train[i][0],0), 1), num_time, axis=1)
             x[i] = np.where(np.random.rand(784, num_time) < fr*dt, 1, 0)
             y[i] = train[i][1]
         
@@ -45,18 +45,24 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', '-g', type=int, default=-1)
     parser.add_argument('--model', '-m', type=str, default=None)
-    parser.add_argument('--batch', '-b', type=int, default=15)
+    parser.add_argument('--batch', '-b', type=int, default=32)
     parser.add_argument('--epoch', '-e', type=int, default=40)
-    parser.add_argument('--lr', '-l', type=float, default=1e-2)
+    parser.add_argument('--ndata', '-nd', type=int, default=60000,
+                        help='The number of analysis trials (<=60000).')
+    parser.add_argument('--time', '-t', type=int, default=5,
+                        help='Total simulation time steps.')
+    parser.add_argument('--dt', '-dt', type=float, default=1e-3,
+                        help='Simulation time step size (sec).')
+    parser.add_argument('--freq', '-f', type=float, default=60,
+                        help='Input signal maximum frequency (Hz).')
+    parser.add_argument('--lr', '-l', type=float, default=1e-4)
     parser.add_argument('--noplot', dest='plot', action='store_false',
                         help='Disable PlotReport extension')
     args = parser.parse_args()
 
     print("Loading datas")
-    N = 60000 # =< 60000
-    dt = 5e-3 # sec
-    num_time = 5 # So, simulation time is dt * num_time
-    dataset = LoadDataset(N=N, dt=dt, num_time=num_time, max_fr=32)
+    dataset = LoadDataset(N=args.ndata, dt=args.dt, 
+                          num_time=args.time, max_fr=args.freq)
     
     #plt.imshow(np.reshape(dataset[1][0][:, 0], (28, 28)))
     #plt.show()
@@ -76,20 +82,20 @@ def main():
     if args.gpu >= 0:
         # Make a specified GPU current
         model = network.SNU_Network(n_in=784, n_mid=256, n_out=10,
-                                    num_time=num_time, gpu=True)
+                                    num_time=args.time, gpu=True)
 
         chainer.backends.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()  # Copy the model to the GPU
     else:
         model = network.SNU_Network(n_in=784, n_mid=256, n_out=10,
-                                    num_time=num_time, gpu=False)
+                                    num_time=args.time, gpu=False)
 
     
-    #optimizer = optimizers.Adam(alpha=args.lr)
+    optimizer = optimizers.Adam(alpha=args.lr)
     #optimizer = optimizers.SGD(lr=args.lr)
-    optimizer = optimizers.RMSprop(lr=args.lr, alpha=0.9)
+    #optimizer = optimizers.RMSprop(lr=args.lr, alpha=0.9)
     optimizer.setup(model)
-    #optimizer.add_hook(chainer.optimizer_hooks.WeightDecay(1e-4))
+    optimizer.add_hook(chainer.optimizer_hooks.WeightDecay(1e-5))
     
     if args.model != None:
         print( "loading model from " + args.model)
@@ -105,7 +111,7 @@ def main():
     trainer.extend(extensions.snapshot_object(model, 'model_snapshot_{.updater.epoch}'),
                                               trigger=(1,'epoch'))
     
-    #trainer.extend(extensions.ExponentialShift('lr', 0.5),trigger=(5, 'epoch'))
+    trainer.extend(extensions.ExponentialShift('alpha', 0.5),trigger=(5, 'epoch'))
 
     # Save two plot images to the result dir
     if args.plot and extensions.PlotReport.available():

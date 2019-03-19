@@ -11,7 +11,7 @@ from chainer import Parameter
 from chainer import initializers
 
 from chainer import Variable
-from step_func import step
+from . import step_func
 
 # Building Spiking Neural Unit
 class SNU(chainer.Chain):
@@ -28,8 +28,9 @@ class SNU(chainer.Chain):
                  rec=False, nobias=False, initial_bias=None,
                  gpu=False):
         super(SNU, self).__init__()
+        initializer = chainer.initializers.GlorotUniform()
         with self.init_scope():
-            self.Wx = L.Linear(n_in, n_out, nobias=True)
+            self.Wx = L.Linear(n_in, n_out, nobias=True, initialW=initializer)
             if rec:
                 self.Wy = L.Linear(n_out, n_out, nobias=True)
             
@@ -62,7 +63,8 @@ class SNU(chainer.Chain):
             xp = cuda.cupy
         else:                
             xp = np
-        self.s = Variable(xp.zeros((shape[0], self.n_out), dtype=xp.float32))
+        self.s = initializers.generate_array(initializers.Normal(), (shape[0], self.n_out),
+                                             xp, dtype=xp.float32)
         self.y = Variable(xp.zeros((shape[0], self.n_out), dtype=xp.float32))
         
     def __call__(self, x):
@@ -70,14 +72,14 @@ class SNU(chainer.Chain):
             self.initialize_state(x.shape)
         
         if self.rec:            
-            s = F.relu(self.Wx(x) + self.Wy(self.y) + self.l_tau * self.s * (1 - self.y))
+            s = F.elu(self.Wx(x) + self.Wy(self.y) + self.l_tau * self.s * (1 - self.y))
         else:            
-            s = F.relu(self.Wx(x) + self.l_tau * self.s * (1 - self.y))
+            s = F.elu(self.Wx(x) + self.l_tau * self.s * (1 - self.y))
         
         if self.soft:            
             y = F.sigmoid(F.bias(s, self.b))
         else:            
-            y = step(F.bias(s, self.b))
+            y = step_func.step(F.bias(s, self.b))
             #y = F.relu(F.sign(F.bias(s, self.b)))
             
         self.s = s
