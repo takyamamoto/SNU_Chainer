@@ -16,8 +16,8 @@ y = train[i][0]
 y = np.heaviside(y, 0)
 label = train[i][1]
 
-num_time = 5
-fr = 60 # Hz
+num_time = 20
+fr = 100 # Hz
 dt = 1e-3 # sec
 
 y_fr = fr * np.repeat(np.expand_dims(y, 1), num_time, axis=1)

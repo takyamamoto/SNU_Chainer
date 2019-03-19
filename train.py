@@ -45,15 +45,15 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', '-g', type=int, default=-1)
     parser.add_argument('--model', '-m', type=str, default=None)
-    parser.add_argument('--batch', '-b', type=int, default=32)
+    parser.add_argument('--batch', '-b', type=int, default=64)
     parser.add_argument('--epoch', '-e', type=int, default=40)
     parser.add_argument('--ndata', '-nd', type=int, default=60000,
                         help='The number of analysis trials (<=60000).')
-    parser.add_argument('--time', '-t', type=int, default=5,
+    parser.add_argument('--time', '-t', type=int, default=20,
                         help='Total simulation time steps.')
     parser.add_argument('--dt', '-dt', type=float, default=1e-3,
                         help='Simulation time step size (sec).')
-    parser.add_argument('--freq', '-f', type=float, default=60,
+    parser.add_argument('--freq', '-f', type=float, default=100,
                         help='Input signal maximum frequency (Hz).')
     parser.add_argument('--lr', '-l', type=float, default=1e-4)
     parser.add_argument('--noplot', dest='plot', action='store_false',
