@@ -21,34 +21,34 @@ def load_data(N=1, dt=5e-3, num_time=20, max_fr=60):
     _, test = chainer.datasets.get_mnist()
     x = np.zeros((N, 784, num_time)) # 784=28x28
     y = np.zeros(N)
-    for i in tqdm(range(N)):    
+    for i in tqdm(range(N)):
         fr = max_fr * np.repeat(np.expand_dims(np.heaviside(test[i][0],0), 1), num_time, axis=1)
         x[i] = np.where(np.random.rand(784, num_time) < fr*dt, 1, 0)
         y[i] = test[i][1]
-    
+
     return x.astype(np.float32), y.astype(np.int8)
 
 def plot_activation(model, N, dt, num_time, n_mid,
                     n_out, max_fr, gpu, savefigname):
     x, y = load_data(N=N, dt=dt, num_time=num_time, max_fr=max_fr)
-    
+
     idx = 0
     check_x = np.sum(x[idx], axis=1)
-    
+
     fig = plt.figure(figsize=(6, 4))
     ax1 = fig.add_subplot(1, 2, 1)
     ax1.set_title("Sum of all input spikes\n label : "+str(y[idx]))
     ax1.imshow(np.reshape(check_x, (28, 28)))
-        
+
     if gpu >= 0:
         cuda.get_device_from_id(0).use()
         model.to_gpu()
         x = cuda.cupy.array(x)
         y = cuda.cupy.array(y)
-       
+
     with chainer.using_config('train', False):
         loss, accuracy, h1_list, h2_list, h3_list, out_list = model(x, y)
-    
+
     h1_all = np.zeros((num_time, N, n_mid))
     h2_all = np.zeros((num_time, N, n_mid))
     out_all = np.zeros((num_time, N, n_out))
@@ -56,9 +56,9 @@ def plot_activation(model, N, dt, num_time, n_mid,
         h1_all[i] = cuda.to_cpu(h1_list[i].data)
         h2_all[i] = cuda.to_cpu(h2_list[i].data)
         out_all[i] = cuda.to_cpu(out_list[i].data)
-    
+
     t = np.arange(1, num_time+1)*dt*1000
-    
+
     """
     plt.figure(figsize=(4,4))
     plt.ylim(-0.5, n_mid-0.5)
@@ -68,9 +68,9 @@ def plot_activation(model, N, dt, num_time, n_mid,
         spk = np.where(h1_all[:, idx, i]==1, i, -1)
         plt.scatter(t, spk, color="r",
                     s=0.1)
-    
+
     plt.savefig("h1.png")
-    
+
     plt.figure(figsize=(4,4))
     plt.ylim(-0.5, n_mid-0.5)
     plt.ylabel("# Unit")
@@ -81,7 +81,7 @@ def plot_activation(model, N, dt, num_time, n_mid,
                     s=0.1)
     plt.savefig("h2.png")
     """
-    
+
     ax2 = fig.add_subplot(1, 2, 2)
 
     ax2.set_title("Spikes of the output units")
@@ -95,13 +95,13 @@ def plot_activation(model, N, dt, num_time, n_mid,
         ax2.scatter(t, spk, color="r", marker="|")
     plt.tight_layout()
     plt.savefig(savefigname)
-    
+
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', '-g', type=int, default=-1,
                         help='GPU number to training.')
-    parser.add_argument('--model', '-m', type=str, default=None,
+    parser.add_argument('--model', '-m', type=str, default='./results/model',
                         help='Load saved model (model filename).')
     parser.add_argument('--batch', '-b', type=int, default=32,
                         help='Mini batch size.')
@@ -116,13 +116,13 @@ def main():
     parser.add_argument('--time', '-t', type=int, default=100,
                         help='Total simulation time steps.')
     args = parser.parse_args()
-    
+
     img_save_dir = "./imgs/"
     os.makedirs(img_save_dir, exist_ok=True)
-    
+
     n_mid = 256
     n_out = 10
-    
+
     chainer.global_config.autotune = True
     if args.gpu >= 0:
         # Make a specified GPU current
@@ -140,14 +140,14 @@ def main():
     if args.model != None:
         print( "Loading model from " + args.model)
         serializers.load_npz(args.model, model)
-    
-      
+
+
     plot_activation(model=model, N=args.ndata, dt=args.dt,
                     num_time=args.time, n_mid=n_mid,
-                    n_out=n_out, 
+                    n_out=n_out,
                     max_fr=args.freq, gpu=args.gpu,
                     savefigname=img_save_dir+"results.png")
-    
-            
+
+
 if __name__ == '__main__':
     main()
