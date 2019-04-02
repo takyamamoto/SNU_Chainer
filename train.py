@@ -26,21 +26,21 @@ class LoadDataset(dataset.DatasetMixin):
         train, _ = chainer.datasets.get_mnist()
         x = np.zeros((N, 784, num_time)) # 784=28x28
         y = np.zeros(N)
-        for i in tqdm(range(N)):    
+        for i in tqdm(range(N)):
             fr = max_fr * np.repeat(np.expand_dims(np.heaviside(train[i][0],0), 1), num_time, axis=1)
             x[i] = np.where(np.random.rand(784, num_time) < fr*dt, 1, 0)
             y[i] = train[i][1]
-        
+
         self.x = x.astype(np.float32)
         self.y = y.astype(np.int8)
         self.N = N
-        
+
     def __len__(self):
         return self.N
 
     def get_example(self, i):
         return self.x[i], self.y[i]
-    
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', '-g', type=int, default=-1)
@@ -61,21 +61,21 @@ def main():
     args = parser.parse_args()
 
     print("Loading datas")
-    dataset = LoadDataset(N=args.ndata, dt=args.dt, 
+    dataset = LoadDataset(N=args.ndata, dt=args.dt,
                           num_time=args.time, max_fr=args.freq)
-    
+
     #plt.imshow(np.reshape(dataset[1][0][:, 0], (28, 28)))
     #plt.show()
-    
+
     val_rate = 0.2
     split_at = int(len(dataset) * (1-val_rate))
     train, val = chainer.datasets.split_dataset(dataset, split_at)
-    
+
     train_iter = iterators.SerialIterator(train, batch_size=args.batch, shuffle=True)
     test_iter = iterators.SerialIterator(val, batch_size=args.batch, repeat=False, shuffle=False)
-    
+
     chainer.global_config.autotune = True
-    
+
     # Set up a neural network to train.
     print("Building model")
 
@@ -90,27 +90,27 @@ def main():
         model = network.SNU_Network(n_in=784, n_mid=256, n_out=10,
                                     num_time=args.time, gpu=False)
 
-    
+
     optimizer = optimizers.Adam(alpha=args.lr)
     #optimizer = optimizers.SGD(lr=args.lr)
     #optimizer = optimizers.RMSprop(lr=args.lr, alpha=0.9)
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer_hooks.WeightDecay(1e-4))
-    
+
     if args.model != None:
         print( "loading model from " + args.model)
         serializers.load_npz(args.model, model)
-    
+
     updater = training.StandardUpdater(train_iter, optimizer, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out='results')
-    
+
     trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu))
     trainer.extend(extensions.LogReport(trigger=(100, 'iteration')))
-    
+
     # Snapshot
     trainer.extend(extensions.snapshot_object(model, 'model_snapshot_{.updater.epoch}'),
                                               trigger=(1,'epoch'))
-    
+
     trainer.extend(extensions.ExponentialShift('alpha', 0.5),trigger=(5, 'epoch'))
 
     # Save two plot images to the result dir
@@ -122,16 +122,16 @@ def main():
             extensions.PlotReport(
                 ['main/accuracy', 'validation/main/accuracy'],
                 'epoch', file_name='accuracy.png'), trigger=(1, 'epoch'))
-    
+
     trainer.extend(extensions.PrintReport(
         ['epoch', 'main/loss', 'validation/main/loss',
          'main/accuracy', 'validation/main/accuracy', 'elapsed_time']), trigger=(1, 'iteration'))
-    
+
     trainer.extend(extensions.ProgressBar(update_interval=1))
-    
+
     # Train
     trainer.run()
-    
+
     # Save results
     print("Optimization Finished!")
     modelname = "./results/model"
